@@ -4,3 +4,4 @@ convert_ckpt_to_params.py
 *.pt
 .vscode/
 data/
+eval_results/
