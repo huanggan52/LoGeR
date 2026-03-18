@@ -4,8 +4,6 @@ import torch
 from datasets.base.base_dataset import sample_resolutions
 import hydra
 
-from loger.models.training.loss import Pi3Loss
-
 class LoGeRTrainer(BaseTrainer):
     def __init__(self, cfg):
         super().__init__(cfg)
@@ -83,7 +81,27 @@ class LoGeRTrainer(BaseTrainer):
             
     def forward_batch(self, batch, mode='train'):
         imgs = torch.stack([view['img'] for view in batch], dim=1)
-        pred = self.model(imgs)
+
+        train_cfg = self.cfg.train
+        window_size_range = getattr(train_cfg, 'window_size_range', [imgs.shape[1], imgs.shape[1]])
+        overlap_size_range = getattr(train_cfg, 'overlap_size_range', [0, 0])
+        window_size = int(torch.randint(window_size_range[0], window_size_range[1] + 1, (1,)).item())
+        overlap_size = int(torch.randint(overlap_size_range[0], overlap_size_range[1] + 1, (1,)).item())
+
+        model_kwargs = dict(
+            window_size=window_size,
+            overlap_size=overlap_size,
+            num_iterations=getattr(train_cfg, 'num_iterations', 1),
+            no_detach=getattr(train_cfg, 'no_detach', False),
+            sim3=getattr(train_cfg, 'sim3', False),
+            se3=getattr(train_cfg, 'se3', False),
+            reset_every=getattr(train_cfg, 'reset_every', 0),
+            turn_off_ttt=getattr(train_cfg, 'turn_off_ttt', False),
+            turn_off_swa=getattr(train_cfg, 'turn_off_swa', False),
+            sim3_scale_mode=getattr(train_cfg, 'sim3_scale_mode', 'median'),
+        )
+
+        pred = self.model(imgs, **model_kwargs)
 
         return [pred, batch]
     

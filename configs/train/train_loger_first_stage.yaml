@@ -7,11 +7,11 @@ train:
   max_img_per_gpu: 144
   window_size_range: [12, 12]
   overlap_size_range: [3, 3]
-  iters_per_epoch: 10000
+  iters_per_epoch: 1000
 
   # low resolution
   resolution: 
     - [504, 280]
 
 model:
-  ckpt: ckpts/LoGeR/latest.pt
+  ckpt: null

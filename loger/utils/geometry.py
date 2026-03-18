@@ -34,35 +34,40 @@ def robust_scale_estimation(ratios: torch.Tensor, trim_ratio: float = 0.25) -> t
 def se3_inverse(T):
     """
     Computes the inverse of a batch of SE(3) matrices.
-    T: Tensor of shape (B, 4, 4)
+    T: Tensor of shape (..., 4, 4)
     """
-    if len(T.shape) == 2:
+    leading_dims = T.shape[:-2]
+    unseq_flag = len(leading_dims) == 0
+
+    if unseq_flag:
         T = T[None]
-        unseq_flag = True
-    else:
-        unseq_flag = False
+        leading_dims = T.shape[:-2]
+
+    flat = T.reshape(-1, 4, 4)
 
     if torch.is_tensor(T):
-        R = T[:, :3, :3]
-        t = T[:, :3, 3].unsqueeze(-1)
+        R = flat[:, :3, :3]
+        t = flat[:, :3, 3].unsqueeze(-1)
         R_inv = R.transpose(-2, -1)
         t_inv = -torch.matmul(R_inv, t)
-        T_inv = torch.cat([
+        T_inv_flat = torch.cat([
             torch.cat([R_inv, t_inv], dim=-1),
-            torch.tensor([0, 0, 0, 1], device=T.device, dtype=T.dtype).repeat(T.shape[0], 1, 1)
+            torch.tensor([0, 0, 0, 1], device=T.device, dtype=T.dtype).repeat(flat.shape[0], 1, 1)
         ], dim=1)
+        T_inv = T_inv_flat.reshape(*leading_dims, 4, 4)
     else:
-        R = T[:, :3, :3]
-        t = T[:, :3, 3, np.newaxis]
+        R = flat[:, :3, :3]
+        t = flat[:, :3, 3, np.newaxis]
 
         R_inv = np.swapaxes(R, -2, -1)
         t_inv = -R_inv @ t
 
-        bottom_row = np.zeros((T.shape[0], 1, 4), dtype=T.dtype)
+        bottom_row = np.zeros((flat.shape[0], 1, 4), dtype=flat.dtype)
         bottom_row[:, :, 3] = 1
 
         top_part = np.concatenate([R_inv, t_inv], axis=-1)
-        T_inv = np.concatenate([top_part, bottom_row], axis=1)
+        T_inv_flat = np.concatenate([top_part, bottom_row], axis=1)
+        T_inv = T_inv_flat.reshape(*leading_dims, 4, 4)
 
     if unseq_flag:
         T_inv = T_inv[0]

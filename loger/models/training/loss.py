@@ -166,15 +166,12 @@ class PointLoss(nn.Module):
             final_loss += normal_loss.mean()
         details['normal_loss'] = normal_loss.mean()
 
-        # [Optional] Global Point Loss
-        if 'global_points' in pred and pred['global_points'] is not None:
-            gt_pts = gt['global_points']
-
-            pred_global_pts = pred['global_points'] * S_opt_local.view(B, 1, 1, 1, 1)
-            global_pts_loss = self.criteria_local(pred_global_pts[valid_masks].float(), gt_pts[valid_masks].float()) * weights_[valid_masks].float()[..., None]
-
-            final_loss += global_pts_loss.mean()
-            details['global_pts_loss'] = global_pts_loss.mean()
+        # Global Point Loss
+        gt_pts = gt['global_points']
+        pred_global_pts = pred['points'] * S_opt_local.view(B, 1, 1, 1, 1)
+        global_pts_loss = self.criteria_local(pred_global_pts[valid_masks].float(), gt_pts[valid_masks].float()) * weights_[valid_masks].float()[..., None]
+        final_loss += global_pts_loss.mean()
+        details['global_pts_loss'] = global_pts_loss.mean()
 
         return final_loss, details, S_opt_local
 

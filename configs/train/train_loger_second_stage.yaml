@@ -14,4 +14,4 @@ train:
     - [504, 280]
 
 model:
-  ckpt: null # <path-to-your-pretrain-checkpoint>
+  ckpt: ckpts/LoGeR/latest.pt

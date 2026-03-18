@@ -336,7 +336,7 @@ class BaseTrainer:
         )
 
         for it, batch in enumerate(metric_logger.log_every(
-            self.train_loader, self.cfg.train.print_freq, header
+            self.train_loader, self.cfg.train.print_freq, header, total=self.iters_per_epoch
         )):
             if it >= self.iters_per_epoch:
                 break

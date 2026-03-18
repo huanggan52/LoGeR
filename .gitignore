@@ -3,6 +3,6 @@ results*/
 convert_ckpt_to_params.py
 *.pt
 .vscode/
-.data/
+data/
 eval_results/
 outputs
