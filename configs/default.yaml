@@ -1,9 +1,9 @@
 # @package _global_
 
 defaults:
-  - model: pi3.yaml
-  - train: train_pi3_lowres
-  - data: example.yaml
+  - model: loger.yaml
+  - train: train_loger_first_stage
+  - data: scannet.yaml
   - general: default.yaml
   - extras: default.yaml
   - override hydra/job_logging: custom

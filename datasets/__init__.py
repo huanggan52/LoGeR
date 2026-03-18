@@ -71,8 +71,13 @@ def create_dataloader(cfg, mode):
     world_size = get_world_size()
     rank = get_rank()
 
-    image_num_range = cfg.train.image_num_range if mode == 'train' else [8, 8]
-    print(f'Sampling frame number range from {image_num_range}')
+    if 'sequence_length' in cfg.train:
+        print(f'Sampling fixed sequence length {cfg.train.sequence_length}')
+        image_num_range = [cfg.train.sequence_length, cfg.train.sequence_length]
+    else:
+        image_num_range = cfg.train.image_num_range if mode == 'train' else [8, 8]
+        print(f'Sampling frame number range from {image_num_range}')
+    
     # adapte from vggt
     max_img_per_gpu = cfg.train.max_img_per_gpu if 'max_img_per_gpu' in cfg.train else image_num_range[0]
     print(f'Max frame number per rank {max_img_per_gpu}')
@@ -81,7 +86,7 @@ def create_dataloader(cfg, mode):
         print('Dataset length per rank:', len(dataset) // world_size)
         assert (max_img_per_gpu // image_num_range[0]) * cfg.train.iters_per_epoch < len(dataset) // world_size
 
-    sampler = DynamicDistributedSampler(dataset, seed=cfg.train.base_seed, shuffle=cfg_dataloader.shuffle, rank=rank, drop_last=cfg_dataloader.drop_last)
+    sampler = DynamicDistributedSampler(dataset, num_replicas=world_size, rank=rank, seed=cfg.train.base_seed, shuffle=cfg_dataloader.shuffle, drop_last=cfg_dataloader.drop_last)
     if mode == 'train' and 'sequence_length' in cfg.train:
         sequence_length = cfg.train.sequence_length
         print(f'Using FixedLengthBatchSampler with sequence_length={sequence_length}')

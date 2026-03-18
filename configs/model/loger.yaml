@@ -1,29 +1,31 @@
 # @package _global_
 
 model:
-    _target_: pi3.models.pi3_training.Pi3
+    _target_: loger.models.training.loger_training.Pi3
     pos_type: rope100
     decoder_size: large
-    load_vggt: true
     freeze_encoder: true
-    use_global_points: false
     train_conf: false
-    num_dec_blk_not_to_checkpoint: 4
     ckpt: null # <path-to-your-pretrain-checkpoint>
+    attn_insert_after: [10, 18, 26, 34]
+    ttt_head_dim: 512
+    ttt_insert_after: [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34]
+    ttt_inter_multi: 4
+    ttt_pre_norm: true
 
 loss:
     train_loss: 
-        _target_: pi3.models.loss.Pi3Loss
+        _target_: loger.models.training.loss.Pi3Loss
         train_conf: false
 
     test_loss:
-        _target_: pi3.models.loss.Pi3Loss
+        _target_: loger.models.training.loss.Pi3Loss
         train_conf: false
 
 train:
     num_workers: 16
     batch_size: 1              # not use, dynamic batch size
-    num_epoch: 80
+    num_epoch: 100
     iters_per_epoch: 800
 
     print_freq: 40
@@ -58,13 +60,14 @@ train:
     # Optimizer config
     optimizer:
         type: AdamW
-        lr: 5e-5
+        lr: 1e-5           # base network (unfrozen, non-TTT/SWA)
         weight_decay: 5e-2
         betas: [0.9, 0.95]
         verbose: true
         filter_bias_and_bn: true
 
-        encoder_lr: 5e-6
+        encoder_lr: 1e-5   # encoder (frozen by default, set small for safety)
+        ttt_swa_lr: 5e-4   # TTT and SWA layers
 
     lr_scheduler:
         type: OneCycleLR

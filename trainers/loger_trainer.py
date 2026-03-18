@@ -6,7 +6,7 @@ import hydra
 
 from loger.models.training.loss import Pi3Loss
 
-class Pi3Trainer(BaseTrainer):
+class LoGeRTrainer(BaseTrainer):
     def __init__(self, cfg):
         super().__init__(cfg)
 

@@ -1,11 +1,11 @@
 # @package _global_
 
-trainer: trainers.loger_trainer.Pi3Trainer
+trainer: trainers.loger_trainer.LoGeRTrainer
 
 train:
   sequence_length: 48
   max_img_per_gpu: 144
-  chunk_size_range: [12, 12]
+  window_size_range: [12, 12]
   overlap_size_range: [3, 3]
   iters_per_epoch: 10000
 

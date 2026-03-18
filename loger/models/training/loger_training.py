@@ -54,8 +54,11 @@ class Pi3(nn.Module):
         def _normalize_insert_positions(value: Union[int, List[int], None]) -> List[int]:
             if isinstance(value, (int, float)):
                 return [int(value)]
-            if isinstance(value, (list, tuple)):
-                return [int(x) for x in value]
+            if value is not None:
+                try:
+                    return [int(x) for x in value]
+                except TypeError:
+                    pass
             return []
 
         parsed_ttt_insert_after = _normalize_insert_positions(ttt_insert_after)
@@ -311,7 +314,7 @@ class Pi3(nn.Module):
             checkpoint = torch.load(ckpt, weights_only=False, map_location='cpu')
 
             res = self.load_state_dict(checkpoint, strict=False)
-            print(f'[Pi3] Load checkpoints from {ckpt}: {res}')
+            print(f'[LoGeR] Load checkpoints from {ckpt}: {res}')
 
             del checkpoint
             torch.cuda.empty_cache()

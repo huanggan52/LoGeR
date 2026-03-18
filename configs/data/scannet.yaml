@@ -1,0 +1,45 @@
+# @package _global_
+
+train_dataset:
+    length: 10000000         # dummy
+
+    weights: 
+        ScanNet: 20000
+
+    ScanNet:
+        _target_: datasets.scannet_dataset.ScannetDataset
+        data_root: /media/huanggan/data/ScanNet/scans
+        z_far: 80
+        frame_num: 8
+        aug_crop: 16
+        transform:
+            _partial_: true
+            _target_: datasets.base.transforms.JitterJpegLossBlurring
+        aug_focal: 0.9
+        mode: 'train'
+        sequential: true
+        stride_range: [1, 10]
+
+train_dataloader:
+    drop_last: True
+    shuffle: True
+
+test_dataset:
+    weights: 
+        ScanNet: 2000
+
+    ScanNet:
+        _target_: datasets.scannet_dataset.ScannetDataset
+        data_root: /media/huanggan/data/ScanNet/scans_test
+        z_far: 80
+        frame_num: 8
+        resolution:
+            - [518, 336]
+        transform:
+            _partial_: true
+            _target_: datasets.base.transforms.ImgToTensor
+        mode: 'test'
+
+test_dataloader:
+    drop_last: False
+    shuffle: False

@@ -7,7 +7,6 @@ import numpy as np
 import os.path as osp
 from PIL import Image
 from datasets.base.transforms import *
-import json
 from tqdm import tqdm
 
 class ScannetDataset(BaseDataset):
@@ -32,19 +31,24 @@ class ScannetDataset(BaseDataset):
         self.sequential = sequential
         self.stride_range = stride_range if stride_range is not None else [1, 1]
 
-        self.sequences = os.listdir(data_root)
-        if mode == 'train':
-            self.sequences = [seq for seq in self.sequences if int(seq.split('_')[0][5:]) <= 660]
-        else:
-            self.sequences = [seq for seq in self.sequences if int(seq.split('_')[0][5:]) > 660]
+        try:
+            with open('data/scannet_invalid_list.txt') as f:
+                self.invalid_list = [ln.strip() for ln in f if ln.strip()]
+                print(f'[{self.dataset_label}] Loaded invalid frame list with {len(self.invalid_list)} entries.')
+        except FileNotFoundError:
+            self.invalid_list = []
+
+        self.sequences = []
+        for seq in os.listdir(data_root):
+            if osp.isdir(osp.join(data_root, seq)) and seq not in self.invalid_list:
+                self.sequences.append(seq)
+            elif self.verbose:
+                print(f'[{self.dataset_label}] Skip missing sequence {seq}')
 
         if self.verbose:
             print(f'[{self.dataset_label}] Sequences of {self.dataset_label} dataset:', self.sequences)
 
         print(f'[{self.dataset_label}] Found %d unique videos in %s' % (len(self.sequences), data_root), flush=True)
-
-        with open('data/scannet_invalid_list.json') as f:
-            self.invalid_list = json.load(f)
 
         if not os.path.exists(f'data/dataset_cache/scannetmv_{self.mode}_cache.npy'):
             self.num_imgs = {}
@@ -62,8 +66,7 @@ class ScannetDataset(BaseDataset):
     def _get_views(self, index, resolution, rng):
         scene = self.sequences[index]
         num_imgs = self.num_imgs[scene]
-        valid_idxs = [i for i in range(num_imgs) if i not in self.invalid_list[scene]]
-        num_imgs = len(valid_idxs)
+        valid_idxs = list(range(num_imgs))
 
         if self.sequential:
             # stride-based sequential sampling
@@ -135,6 +138,7 @@ class ScannetDataset(BaseDataset):
         intrinsic = np.array([float(x) for x in intrinsic_text.split()]).astype(np.float32).reshape(4, 4)[:3, :3]
         
         views = []
+        geo_aug_params = self.sample_geo_aug_params(rng)
         for idx in idxs:
             impath = os.path.join(base_path, 'color', f'{idx}.jpg')
             disppath = os.path.join(base_path, 'depth', f'{idx}.png')
@@ -149,10 +153,10 @@ class ScannetDataset(BaseDataset):
 
             rgb_image = np.array(Image.open(impath).resize((640, 480), resample=lanczos))
 
-            depthmap = Image.open(disppath).astype(np.float32) / 1000.
+            depthmap = np.array(Image.open(disppath)).astype(np.float32) / 1000.
 
             rgb_image, depthmap, intrinsic_ = self._crop_resize_if_necessary(
-                rgb_image, depthmap, intrinsic.copy(), resolution, rng=rng, info=impath)
+                rgb_image, depthmap, intrinsic.copy(), resolution, rng=rng, info=impath, geo_aug_params=geo_aug_params)
 
             views.append(dict(
                 img=rgb_image,

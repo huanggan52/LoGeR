@@ -4,8 +4,8 @@ import torch.nn as nn
 from typing import *
 import math
 
-from ..utils.geometry import homogenize_points, se3_inverse, depth_edge
-from ..utils.alignment import align_points_scale
+from ...utils.geometry import homogenize_points, se3_inverse, depth_edge
+from ...utils.alignment import align_points_scale
 
 from datasets import __HIGH_QUALITY_DATASETS__, __MIDDLE_QUALITY_DATASETS__
 
@@ -46,7 +46,7 @@ class PointLoss(nn.Module):
             self.expected_dist_thresh = expected_dist_thresh
 
     def prepare_segformer(self):
-        from pi3.models.segformer.model import EncoderDecoder
+        from loger.models.segformer.model import EncoderDecoder
         self.segformer = EncoderDecoder()
         self.segformer.load_state_dict(torch.load('ckpts/segformer.b0.512x512.ade.160k.pth', map_location=torch.device('cpu'), weights_only=False)['state_dict'])
         self.segformer = self.segformer.cuda()

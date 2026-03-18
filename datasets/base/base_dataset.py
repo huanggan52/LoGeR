@@ -1,9 +1,9 @@
 from datasets.base.easy_dataset import EasyDataset
-from pi3.utils.geometry import depthmap_to_absolute_camera_coordinates
+from loger.utils.geometry import depthmap_to_absolute_camera_coordinates
 import numpy as np
 import os
 import PIL
-import pi3.utils.cropping as cropping
+import loger.utils.cropping as cropping
 import torchvision.transforms as tvf
 from omegaconf import OmegaConf
 from .transforms import *
@@ -124,7 +124,13 @@ class BaseDataset(EasyDataset):
 
         self.num_resoluions = len(self._resolutions)
 
-    def _crop_resize_if_necessary(self, image, depthmap, intrinsics, resolution, rng=None, info=None, normal=None, far_mask=None):
+    def sample_geo_aug_params(self, rng):
+        """Sample geometry augmentation parameters once, to be shared across all views in a batch."""
+        crop_scale = self.aug_focal + (1.0 - self.aug_focal) * rng.beta(0.5, 0.5) if self.aug_focal else None
+        aug_crop_offset = int(rng.integers(0, self.aug_crop)) if self.aug_crop > 1 else 0
+        return dict(crop_scale=crop_scale, aug_crop_offset=aug_crop_offset)
+
+    def _crop_resize_if_necessary(self, image, depthmap, intrinsics, resolution, rng=None, info=None, normal=None, far_mask=None, geo_aug_params=None):
         """ This function:
             - first downsizes the image with LANCZOS inteprolation,
               which is better than bilinear interpolation in
@@ -160,12 +166,17 @@ class BaseDataset(EasyDataset):
 
         # high-quality Lanczos down-scaling
         target_resolution = np.array(resolution)
-        if self.aug_focal:
-            crop_scale = self.aug_focal + (1.0 - self.aug_focal) * np.random.beta(0.5, 0.5) # beta distribution, bi-modal
+        if geo_aug_params is not None:
+            crop_scale = geo_aug_params['crop_scale']
+            aug_crop_offset = geo_aug_params['aug_crop_offset']
+        else:
+            crop_scale = self.aug_focal + (1.0 - self.aug_focal) * np.random.beta(0.5, 0.5) if self.aug_focal else None
+            aug_crop_offset = int(rng.integers(0, self.aug_crop)) if self.aug_crop > 1 else 0
+
+        if crop_scale is not None:
             image, depthmap, intrinsics, normal, far_mask = cropping.center_crop_image_depthmap(image, depthmap, intrinsics, crop_scale, normal=normal, far_mask=far_mask)
 
-        if self.aug_crop > 1:
-            target_resolution += rng.integers(0, self.aug_crop)
+        target_resolution += aug_crop_offset
         image, depthmap, intrinsics, normal, far_mask = cropping.rescale_image_depthmap(image, depthmap, intrinsics, target_resolution, normal=normal, far_mask=far_mask) # slightly scale the image a bit larger than the target resolution
 
         # actual cropping (if necessary) with bilinear interpolation
