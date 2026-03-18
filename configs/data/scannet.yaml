@@ -34,11 +34,13 @@ test_dataset:
         z_far: 80
         frame_num: 8
         resolution:
-            - [518, 336]
+            - [504, 280]
         transform:
             _partial_: true
             _target_: datasets.base.transforms.ImgToTensor
         mode: 'test'
+        sequential: true
+        stride_range: [1, 10]
 
 test_dataloader:
     drop_last: False

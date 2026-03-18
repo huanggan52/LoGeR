@@ -269,6 +269,9 @@ class BaseTrainer:
 
                 self.log_all(log_stats, step=self.global_step)
 
+                val_scalars = {f"val/{k}": v for k, v in val_stats.items() if np.isscalar(v)}
+                self.accelerator.log(val_scalars, step=self.global_step)
+
         total_time = time.time() - start_time
         total_time_str = str(datetime.timedelta(seconds=int(total_time)))
         self.log_info("Training time {}".format(total_time_str))
